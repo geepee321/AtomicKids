@@ -28,7 +28,6 @@ const TaskList = ({
   return (
     <div onClick={(e) => e.stopPropagation()}>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Tasks</h2>
         {isParentMode && (
           <Button onClick={() => setIsDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
@@ -36,8 +35,7 @@ const TaskList = ({
           </Button>
         )}
       </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {tasks.map((task) => (
           <div
             key={task.id}
@@ -63,7 +61,6 @@ const TaskList = ({
           </div>
         ))}
       </div>
-
       <TaskDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}

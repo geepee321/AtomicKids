@@ -19,7 +19,7 @@ const TaskCard = ({
 }: TaskCardProps) => {
   return (
     <Card
-      className={`w-60 h-[180px] p-6 cursor-pointer hover:shadow-lg transition-all ${isCompleted ? "bg-green-500" : "bg-white"}`}
+      className={`w-full h-[180px] p-6 cursor-pointer hover:shadow-lg transition-all ${isCompleted ? "bg-green-500" : "bg-white"}`}
       onClick={() => onComplete(!isCompleted)}
     >
       <motion.div

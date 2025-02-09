@@ -60,42 +60,16 @@ const Home = () => {
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
     try {
+      // Update task completion status
       const { error } = await supabase
         .from("tasks")
         .update({ is_completed: completed })
         .eq("id", taskId);
       if (error) throw error;
 
-      // Update progress immediately
-      const updatedChildren = children.map((child) => {
-        if (child.id === activeChildId) {
-          const updatedTasks = child.tasks?.map((task) =>
-            task.id === taskId ? { ...task, is_completed: completed } : task,
-          );
-          const completedCount =
-            updatedTasks?.filter((t) => t.is_completed).length || 0;
-          const totalTasks = updatedTasks?.length || 0;
-          const newProgress =
-            totalTasks > 0 ? (completedCount / totalTasks) * 100 : 0;
-
-          return {
-            ...child,
-            tasks: updatedTasks,
-            progress: newProgress,
-          };
-        }
-        return child;
-      });
-      setChildren(updatedChildren);
-
-      // Update progress in database
-      const activeChild = updatedChildren.find((c) => c.id === activeChildId);
-      if (activeChild) {
-        await supabase
-          .from("children")
-          .update({ progress: activeChild.progress })
-          .eq("id", activeChildId);
-      }
+      // The streak and completed_dates will be updated automatically by the database trigger
+      // We just need to fetch the latest data
+      await fetchInitialData();
     } catch (error) {
       console.error("Error updating task:", error);
     }
@@ -138,12 +112,6 @@ const Home = () => {
         <h1 className="text-4xl font-bold text-center mb-8 text-primary">
           Atomic Kids
         </h1>
-        <div className="flex justify-end mb-4">
-          <ParentModeToggle
-            isParentMode={isParentMode}
-            onToggle={setIsParentMode}
-          />
-        </div>
 
         <ChildSelector
           children={children}
@@ -151,7 +119,7 @@ const Home = () => {
           onSelectChild={setActiveChildId}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
+        <div className="grid grid-cols-1 gap-6">
           <div className="space-y-6">
             <ProgressHeader
               progress={activeChild?.progress || 0}
@@ -197,13 +165,32 @@ const Home = () => {
             />
           </div>
 
-          <div className="lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)]">
+          <div>
             <CharacterDisplay
               characters={activeChild?.characters || []}
               activeCharacterId={activeChild?.active_character_id || undefined}
               onSelectCharacter={handleCharacterSelect}
             />
           </div>
+        </div>
+
+        {/* Bottom Controls */}
+        <div className="mt-4 flex gap-4">
+          <ParentModeToggle
+            isParentMode={isParentMode}
+            onToggle={setIsParentMode}
+          />
+          {activeChild?.completed_dates && (
+            <Link
+              to="/history"
+              state={{ completedDates: activeChild.completed_dates }}
+            >
+              <Button variant="outline" size="sm">
+                <CalendarDays className="h-4 w-4 mr-2" />
+                View History
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     </motion.div>

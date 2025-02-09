@@ -30,17 +30,9 @@ const ProgressHeader = ({
             {completedTasks} out of {todayTasks}
           </p>
         </div>
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h3 className="text-sm font-medium text-gray-500">Streak</h3>
-            <p className="text-2xl font-bold text-orange-500">{streak} days</p>
-          </div>
-          <Link to="/history" state={{ completedDates }}>
-            <Button variant="outline" size="sm">
-              <CalendarDays className="h-4 w-4 mr-2" />
-              View History
-            </Button>
-          </Link>
+        <div>
+          <h3 className="text-sm font-medium text-gray-500">Streak</h3>
+          <p className="text-2xl font-bold text-orange-500">{streak} days</p>
         </div>
       </div>
       <AdventureProgress progress={progress} />

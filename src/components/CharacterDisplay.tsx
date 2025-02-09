@@ -18,7 +18,7 @@ const CharacterDisplay = ({
   onSelectCharacter = () => {},
 }: CharacterDisplayProps) => {
   return (
-    <Card className="w-[300px] h-[400px] p-6 bg-white overflow-hidden">
+    <Card className="w-full h-[400px] p-6 bg-white overflow-hidden">
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold flex items-center gap-2">
@@ -32,7 +32,7 @@ const CharacterDisplay = ({
           {characters.map((character) => (
             <motion.div
               key={character.id}
-              whileHover={{ scale: 1.02, y: 0 }}
+              whileHover={{ y: 0 }}
               whileTap={{ scale: 0.98 }}
               className={`relative cursor-pointer ${!character.is_unlocked ? "opacity-50" : ""}`}
               onClick={() =>
@@ -40,7 +40,7 @@ const CharacterDisplay = ({
               }
             >
               <Card
-                className={`p-3 ${character.id === activeCharacterId ? "border-2 border-primary" : ""}`}
+                className={`p-3 transition-all hover:shadow-lg ${character.id === activeCharacterId ? "border-2 border-primary" : ""}`}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full overflow-hidden">
@@ -52,11 +52,11 @@ const CharacterDisplay = ({
                   </div>
                   <div>
                     <h3 className="font-medium">{character.name}</h3>
-                    <p className="text-sm text-gray-500">
-                      {character.is_unlocked
-                        ? "Unlocked"
-                        : `Unlocks at ${character.streak_requirement} day streak`}
-                    </p>
+                    {!character.is_unlocked && (
+                      <p className="text-sm text-gray-500">
+                        Unlocks at {character.streak_requirement} day streak
+                      </p>
+                    )}
                   </div>
                 </div>
               </Card>

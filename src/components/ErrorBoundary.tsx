@@ -7,15 +7,17 @@ interface Props {
 
 interface State {
   hasError: boolean;
+  error?: Error;
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false,
-  };
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
-  public static getDerivedStateFromError(_: Error): State {
-    return { hasError: true };
+  public static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -30,7 +32,7 @@ class ErrorBoundary extends Component<Props, State> {
             <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
             <h1 className="text-2xl font-bold">Something went wrong</h1>
             <p className="text-muted-foreground">
-              Please try refreshing the page
+              {this.state.error?.message || "Please try refreshing the page"}
             </p>
           </div>
         </div>

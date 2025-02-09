@@ -1,100 +1,131 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { LoadingSpinner } from "./LoadingSpinner";
 import TaskList from "./TaskList";
+import { ParentModeToggle } from "./ParentModeToggle";
 import ProgressHeader from "./ProgressHeader";
 import CharacterDisplay from "./CharacterDisplay";
 import ChildSelector from "./ChildSelector";
 import { motion } from "framer-motion";
-import { Child } from "@/types";
+import { Link } from "react-router-dom";
+import { CalendarDays } from "lucide-react";
+import { Button } from "./ui/button";
+import { Child, Task, Character } from "@/types";
+import { supabase } from "@/lib/supabase";
+import { iconMap } from "@/lib/icons";
 
-interface HomeProps {
-  initialChildren?: Child[];
-}
-
-const defaultChildren: Child[] = [
-  {
-    id: "1",
-    name: "Emma",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emma",
-    streak: 3,
-    progress: 60,
-    characters: [
-      {
-        id: "1",
-        name: "Happy Star",
-        image: "https://api.dicebear.com/7.x/avataaars/svg?seed=star",
-        isUnlocked: true,
-      },
-      {
-        id: "2",
-        name: "Super Hero",
-        image: "https://api.dicebear.com/7.x/avataaars/svg?seed=hero",
-        isUnlocked: true,
-      },
-    ],
-    activeCharacterId: "1",
-  },
-  {
-    id: "2",
-    name: "Oliver",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Oliver",
-    streak: 5,
-    progress: 40,
-    characters: [
-      {
-        id: "1",
-        name: "Happy Star",
-        image: "https://api.dicebear.com/7.x/avataaars/svg?seed=star",
-        isUnlocked: true,
-      },
-    ],
-    activeCharacterId: "1",
-  },
-];
-
-const Home = ({ initialChildren = defaultChildren }: HomeProps) => {
-  const [children, setChildren] = useState(initialChildren);
-  const [activeChildId, setActiveChildId] = useState(children[0]?.id);
+const Home = () => {
+  const [isParentMode, setIsParentMode] = useState(false);
+  const [children, setChildren] = useState<Child[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeChildId, setActiveChildId] = useState<string>();
 
   const activeChild = children.find((child) => child.id === activeChildId);
 
-  const handleTaskComplete = (taskId: string, completed: boolean) => {
-    setChildren((prevChildren) => {
-      return prevChildren.map((child) => {
-        if (child.id === activeChildId) {
-          const updatedTasks =
-            child.tasks?.map((task) =>
-              task.id === taskId ? { ...task, isCompleted: completed } : task,
-            ) || [];
+  const fetchInitialData = async () => {
+    try {
+      const { data: childrenData, error: childrenError } = await supabase.from(
+        "children",
+      ).select(`
+          *,
+          tasks (*),
+          characters (*)
+        `);
 
-          const completedCount = updatedTasks.filter(
-            (t) => t.isCompleted,
-          ).length;
-          const newProgress = Math.round(
-            (completedCount / updatedTasks.length) * 100,
+      if (childrenError) throw childrenError;
+
+      const childrenWithIcons = childrenData?.map((child) => ({
+        ...child,
+        tasks: child.tasks
+          ?.map((task) => ({
+            ...task,
+            icon: iconMap[task.icon_name],
+          }))
+          .sort(
+            (a, b) =>
+              new Date(a.created_at).getTime() -
+              new Date(b.created_at).getTime(),
+          ),
+      }));
+
+      setChildren(childrenWithIcons || []);
+      if (!activeChildId && childrenWithIcons?.[0]) {
+        setActiveChildId(childrenWithIcons[0].id);
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTaskComplete = async (taskId: string, completed: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ is_completed: completed })
+        .eq("id", taskId);
+      if (error) throw error;
+
+      // Update progress immediately
+      const updatedChildren = children.map((child) => {
+        if (child.id === activeChildId) {
+          const updatedTasks = child.tasks?.map((task) =>
+            task.id === taskId ? { ...task, is_completed: completed } : task,
           );
+          const completedCount =
+            updatedTasks?.filter((t) => t.is_completed).length || 0;
+          const totalTasks = updatedTasks?.length || 0;
+          const newProgress =
+            totalTasks > 0 ? (completedCount / totalTasks) * 100 : 0;
 
           return {
             ...child,
             tasks: updatedTasks,
             progress: newProgress,
-            streak: newProgress === 100 ? child.streak + 1 : child.streak,
           };
         }
         return child;
       });
-    });
+      setChildren(updatedChildren);
+
+      // Update progress in database
+      const activeChild = updatedChildren.find((c) => c.id === activeChildId);
+      if (activeChild) {
+        await supabase
+          .from("children")
+          .update({ progress: activeChild.progress })
+          .eq("id", activeChildId);
+      }
+    } catch (error) {
+      console.error("Error updating task:", error);
+    }
   };
 
-  const handleCharacterSelect = (characterId: string) => {
-    setChildren((prevChildren) => {
-      return prevChildren.map((child) => {
-        if (child.id === activeChildId) {
-          return { ...child, activeCharacterId: characterId };
-        }
-        return child;
-      });
-    });
+  const handleCharacterSelect = async (characterId: string) => {
+    if (!activeChildId) return;
+    try {
+      const { error } = await supabase
+        .from("children")
+        .update({ active_character_id: characterId })
+        .eq("id", activeChildId);
+      if (error) throw error;
+      await fetchInitialData();
+    } catch (error) {
+      console.error("Error updating character:", error);
+    }
   };
+
+  useEffect(() => {
+    fetchInitialData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 p-6">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -105,8 +136,14 @@ const Home = ({ initialChildren = defaultChildren }: HomeProps) => {
     >
       <div className="max-w-7xl mx-auto">
         <h1 className="text-4xl font-bold text-center mb-8 text-primary">
-          Daily Task Adventure
+          Atomic Kids
         </h1>
+        <div className="flex justify-end mb-4">
+          <ParentModeToggle
+            isParentMode={isParentMode}
+            onToggle={setIsParentMode}
+          />
+        </div>
 
         <ChildSelector
           children={children}
@@ -121,19 +158,49 @@ const Home = ({ initialChildren = defaultChildren }: HomeProps) => {
               streak={activeChild?.streak || 0}
               todayTasks={activeChild?.tasks?.length || 0}
               completedTasks={
-                activeChild?.tasks?.filter((t) => t.isCompleted).length || 0
+                activeChild?.tasks?.filter((t) => t.is_completed).length || 0
               }
+              avatar={activeChild?.avatar}
+              completedDates={activeChild?.completed_dates}
             />
             <TaskList
               tasks={activeChild?.tasks || []}
+              isParentMode={isParentMode}
               onTaskComplete={handleTaskComplete}
+              onAddTask={async (data) => {
+                if (!activeChildId) return;
+                try {
+                  const { error } = await supabase.from("tasks").insert({
+                    child_id: activeChildId,
+                    title: data.title,
+                    icon_name: data.iconName,
+                    is_completed: false,
+                  });
+                  if (error) throw error;
+                  await fetchInitialData();
+                } catch (error) {
+                  console.error("Error adding task:", error);
+                }
+              }}
+              onDeleteTask={async (taskId) => {
+                try {
+                  const { error } = await supabase
+                    .from("tasks")
+                    .delete()
+                    .eq("id", taskId);
+                  if (error) throw error;
+                  await fetchInitialData();
+                } catch (error) {
+                  console.error("Error deleting task:", error);
+                }
+              }}
             />
           </div>
 
           <div className="lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)]">
             <CharacterDisplay
               characters={activeChild?.characters || []}
-              activeCharacterId={activeChild?.activeCharacterId}
+              activeCharacterId={activeChild?.active_character_id || undefined}
               onSelectCharacter={handleCharacterSelect}
             />
           </div>

@@ -1,89 +1,75 @@
-import React from "react";
+import React, { useState } from "react";
+import { Task } from "@/types";
 import TaskCard from "./TaskCard";
-import { motion } from "framer-motion";
-import { Bed, Coffee, Book, Brush, Dog, Dumbbell } from "lucide-react";
-
-interface Task {
-  id: string;
-  title: string;
-  icon: React.ReactNode;
-  isCompleted: boolean;
-}
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "./ui/button";
+import { Plus, Trash2 } from "lucide-react";
+import { TaskDialog } from "./TaskDialog";
+import { IconName } from "@/lib/icons";
 
 interface TaskListProps {
   tasks?: Task[];
   onTaskComplete?: (taskId: string, completed: boolean) => void;
+  onAddTask?: (data: { title: string; iconName: IconName }) => void;
+  onDeleteTask?: (taskId: string) => void;
+  isParentMode?: boolean;
 }
 
-const defaultTasks: Task[] = [
-  {
-    id: "1",
-    title: "Make Bed",
-    icon: <Bed className="h-8 w-8" />,
-    isCompleted: false,
-  },
-  {
-    id: "2",
-    title: "Breakfast",
-    icon: <Coffee className="h-8 w-8" />,
-    isCompleted: false,
-  },
-  {
-    id: "3",
-    title: "Homework",
-    icon: <Book className="h-8 w-8" />,
-    isCompleted: false,
-  },
-  {
-    id: "4",
-    title: "Brush Teeth",
-    icon: <Brush className="h-8 w-8" />,
-    isCompleted: false,
-  },
-  {
-    id: "5",
-    title: "Walk Dog",
-    icon: <Dog className="h-8 w-8" />,
-    isCompleted: false,
-  },
-  {
-    id: "6",
-    title: "Exercise",
-    icon: <Dumbbell className="h-8 w-8" />,
-    isCompleted: false,
-  },
-];
-
 const TaskList = ({
-  tasks = defaultTasks,
+  tasks = [],
   onTaskComplete = () => {},
+  onAddTask = () => {},
+  onDeleteTask = () => {},
+  isParentMode = false,
 }: TaskListProps) => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+
   return (
-    <motion.div
-      className="w-full min-h-[600px] bg-slate-50 p-8 rounded-lg"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 justify-items-center">
+    <div onClick={(e) => e.stopPropagation()}>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Tasks</h2>
+        {isParentMode && (
+          <Button onClick={() => setIsDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Task
+          </Button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {tasks.map((task) => (
-          <motion.div
+          <div
             key={task.id}
-            layout
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.3 }}
+            className="relative group"
+            onClick={(e) => e.stopPropagation()}
           >
             <TaskCard
-              title={task.title}
               icon={task.icon}
-              isCompleted={task.isCompleted}
+              title={task.title}
+              isCompleted={task.is_completed}
               onComplete={(completed) => onTaskComplete(task.id, completed)}
             />
-          </motion.div>
+            {isParentMode && (
+              <Button
+                variant="destructive"
+                size="icon"
+                className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => onDeleteTask(task.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         ))}
       </div>
-    </motion.div>
+
+      <TaskDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onSubmit={onAddTask}
+      />
+    </div>
   );
 };
 

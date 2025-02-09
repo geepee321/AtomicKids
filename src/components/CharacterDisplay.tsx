@@ -3,12 +3,7 @@ import { Card } from "./ui/card";
 import { motion } from "framer-motion";
 import { Star, Trophy } from "lucide-react";
 
-interface Character {
-  id: string;
-  name: string;
-  image: string;
-  isUnlocked: boolean;
-}
+import { Character } from "@/types";
 
 interface CharacterDisplayProps {
   characters?: Character[];
@@ -17,26 +12,8 @@ interface CharacterDisplayProps {
 }
 
 const CharacterDisplay = ({
-  characters = [
-    {
-      id: "1",
-      name: "Happy Star",
-      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=star",
-      isUnlocked: true,
-    },
-    {
-      id: "2",
-      name: "Super Hero",
-      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=hero",
-      isUnlocked: true,
-    },
-    {
-      id: "3",
-      name: "Mystery Friend",
-      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=mystery",
-      isUnlocked: false,
-    },
-  ],
+  characters = [],
+
   activeCharacterId = "1",
   onSelectCharacter = () => {},
 }: CharacterDisplayProps) => {
@@ -48,24 +25,18 @@ const CharacterDisplay = ({
             <Trophy className="h-5 w-5 text-yellow-500" />
             Characters
           </h2>
-          <div className="flex items-center gap-1">
-            <Star className="h-4 w-4 text-yellow-500" />
-            <span className="text-sm font-medium">
-              {characters.filter((c) => c.isUnlocked).length}/
-              {characters.length}
-            </span>
-          </div>
+          <div className="flex items-center gap-1"></div>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-4">
+        <div className="flex-1 overflow-y-auto space-y-4 scrollbar-hide px-1 pt-1">
           {characters.map((character) => (
             <motion.div
               key={character.id}
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.02, y: 0 }}
               whileTap={{ scale: 0.98 }}
-              className={`relative cursor-pointer ${!character.isUnlocked ? "opacity-50" : ""}`}
+              className={`relative cursor-pointer ${!character.is_unlocked ? "opacity-50" : ""}`}
               onClick={() =>
-                character.isUnlocked && onSelectCharacter(character.id)
+                character.is_unlocked && onSelectCharacter(character.id)
               }
             >
               <Card
@@ -82,7 +53,9 @@ const CharacterDisplay = ({
                   <div>
                     <h3 className="font-medium">{character.name}</h3>
                     <p className="text-sm text-gray-500">
-                      {character.isUnlocked ? "Unlocked" : "Locked"}
+                      {character.is_unlocked
+                        ? "Unlocked"
+                        : `Unlocks at ${character.streak_requirement} day streak`}
                     </p>
                   </div>
                 </div>

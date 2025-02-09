@@ -1,7 +1,6 @@
-import { Child } from "@/types";
+import { Child, Character } from "@/types";
 import { Card } from "./ui/card";
 import { motion } from "framer-motion";
-import { Users } from "lucide-react";
 
 interface ChildSelectorProps {
   children?: Child[];
@@ -18,7 +17,7 @@ const ChildSelector = ({
       streak: 3,
       progress: 60,
       characters: [],
-      activeCharacterId: "1",
+      active_character_id: "1",
     },
     {
       id: "2",
@@ -27,7 +26,7 @@ const ChildSelector = ({
       streak: 5,
       progress: 40,
       characters: [],
-      activeCharacterId: "1",
+      active_character_id: "1",
     },
   ],
   activeChildId = "1",
@@ -36,10 +35,6 @@ const ChildSelector = ({
   return (
     <Card className="p-4 bg-white mb-6">
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-primary" />
-          <span className="font-medium">Select Child:</span>
-        </div>
         <div className="flex gap-3">
           {children.map((child) => (
             <motion.div
@@ -53,7 +48,11 @@ const ChildSelector = ({
               >
                 <div className="flex items-center gap-2">
                   <img
-                    src={child.avatar}
+                    src={
+                      child.characters.find(
+                        (c) => c.id === child.active_character_id,
+                      )?.image || child.avatar
+                    }
                     alt={child.name}
                     className="w-8 h-8 rounded-full"
                   />

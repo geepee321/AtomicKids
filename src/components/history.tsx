@@ -66,11 +66,9 @@ export default function History() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-4xl font-bold text-primary">Task History</h1>
-            <p className="text-muted-foreground">for {child.name}</p>
-            <p className="text-sm text-muted-foreground">
-              (All times in Sydney timezone)
-            </p>
+            <h1 className="text-4xl font-bold text-primary">
+              {child.name}'s History
+            </h1>
           </div>
         </div>
 

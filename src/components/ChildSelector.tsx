@@ -33,7 +33,7 @@ const ChildSelector = ({
   onSelectChild = () => {},
 }: ChildSelectorProps) => {
   return (
-    <Card className="p-4 bg-white mb-6">
+    <Card className="p-4 bg-white sticky top-0 z-10 shadow-md">
       <div className="flex items-center gap-4">
         <div className="flex gap-3">
           {children.map((child) => (

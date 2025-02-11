@@ -1,5 +1,7 @@
 import { Calendar } from "@/components/ui/calendar";
 import { Card } from "@/components/ui/card";
+import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 
 interface TaskCalendarProps {
   completedDates?: string[];
@@ -8,7 +10,7 @@ interface TaskCalendarProps {
 export function TaskCalendar({ completedDates = [] }: TaskCalendarProps) {
   const modifiers = {
     completed: (date: Date) => {
-      const dateStr = date.toISOString().split("T")[0];
+      const dateStr = formatInTimeZone(date, "Australia/Sydney", "yyyy-MM-dd");
       return completedDates.includes(dateStr);
     },
   };

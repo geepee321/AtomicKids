@@ -23,7 +23,7 @@ export function CelebrationOverlay({
       // Auto-hide after 3 seconds
       const timer = setTimeout(() => {
         onComplete?.();
-      }, 3000);
+      }, 10000);
 
       return () => clearTimeout(timer);
     }

@@ -17,7 +17,6 @@ import { supabase } from "@/lib/supabase";
 import { iconMap } from "@/lib/icons";
 
 const Home = () => {
-  const [showCelebration, setShowCelebration] = useState(false);
   const [isParentMode, setIsParentMode] = useState(false);
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,10 +117,6 @@ const Home = () => {
         .from("tasks")
         .select("is_completed")
         .eq("child_id", activeChildId);
-
-      if (tasks && tasks.every((task) => task.is_completed)) {
-        setShowCelebration(true);
-      }
     } catch (error) {
       console.error("Error updating task:", error);
     }
@@ -165,16 +160,18 @@ const Home = () => {
       transition={{ duration: 0.5 }}
     >
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-8 text-primary">
-          Atomic Kids ⚛️🚸
-        </h1>
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-semibold text-primary">
-            {format(new Date(), "EEEE")}
-          </h2>
-          <p className="text-muted-foreground">
-            {format(new Date(), "do MMMM yyyy")}
-          </p>
+        <div className="mb-4">
+          <h1 className="text-4xl font-bold text-center mb-8 text-primary">
+            Atomic Kids ⚛️🚸
+          </h1>
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-semibold text-primary">
+              {format(new Date(), "EEEE")}
+            </h2>
+            <p className="text-muted-foreground">
+              {format(new Date(), "do MMMM yyyy")}
+            </p>
+          </div>
         </div>
 
         <ChildSelector
@@ -183,7 +180,7 @@ const Home = () => {
           onSelectChild={setActiveChildId}
         />
 
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 gap-6 mt-6">
           <div className="space-y-6">
             <ProgressHeader
               progress={activeChild?.progress || 0}
@@ -245,10 +242,7 @@ const Home = () => {
             onToggle={setIsParentMode}
           />
           {activeChild?.completed_dates && (
-            <Link
-              to="/history"
-              state={{ completedDates: activeChild.completed_dates }}
-            >
+            <Link to={`/history/${activeChild.id}`}>
               <Button variant="outline" size="sm">
                 <CalendarDays className="h-4 w-4 mr-2" />
                 View History
@@ -257,10 +251,6 @@ const Home = () => {
           )}
         </div>
       </div>
-      <CelebrationOverlay
-        show={showCelebration}
-        onComplete={() => setShowCelebration(false)}
-      />
     </motion.div>
   );
 };

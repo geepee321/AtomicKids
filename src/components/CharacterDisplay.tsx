@@ -29,39 +29,48 @@ const CharacterDisplay = ({
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-4 scrollbar-hide px-1 pt-1">
-          {characters.map((character) => (
-            <motion.div
-              key={character.id}
-              whileHover={{ y: 0 }}
-              whileTap={{ scale: 0.98 }}
-              className={`relative cursor-pointer ${!character.is_unlocked ? "opacity-50" : ""}`}
-              onClick={() =>
-                character.is_unlocked && onSelectCharacter(character.id)
+          {[...characters]
+            .sort((a, b) => {
+              // Sort by unlocked status first (unlocked characters first)
+              if (a.is_unlocked !== b.is_unlocked) {
+                return b.is_unlocked ? 1 : -1;
               }
-            >
-              <Card
-                className={`p-3 transition-all hover:shadow-lg ${character.id === activeCharacterId ? "border-2 border-primary" : ""}`}
+              // Then sort by streak requirement
+              return a.streak_requirement - b.streak_requirement;
+            })
+            .map((character) => (
+              <motion.div
+                key={character.id}
+                whileHover={{ y: 0 }}
+                whileTap={{ scale: 0.98 }}
+                className={`relative cursor-pointer ${!character.is_unlocked ? "opacity-50" : ""}`}
+                onClick={() =>
+                  character.is_unlocked && onSelectCharacter(character.id)
+                }
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full overflow-hidden">
-                    <img
-                      src={character.image}
-                      alt={character.name}
-                      className="w-full h-full object-cover"
-                    />
+                <Card
+                  className={`p-3 transition-all hover:shadow-lg ${character.id === activeCharacterId ? "border-2 border-primary" : ""}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full overflow-hidden">
+                      <img
+                        src={character.image}
+                        alt={character.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">{character.name}</h3>
+                      {!character.is_unlocked && (
+                        <p className="text-sm text-gray-500">
+                          Unlocks at {character.streak_requirement} day streak
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-medium">{character.name}</h3>
-                    {!character.is_unlocked && (
-                      <p className="text-sm text-gray-500">
-                        Unlocks at {character.streak_requirement} day streak
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
+                </Card>
+              </motion.div>
+            ))}
         </div>
       </div>
     </Card>

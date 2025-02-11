@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { format, isToday, parseISO } from "date-fns";
+import { getTimezoneOffset } from "date-fns-tz";
 import { LoadingSpinner } from "./LoadingSpinner";
 import TaskList from "./TaskList";
 import { ParentModeToggle } from "./ParentModeToggle";
@@ -9,17 +11,56 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { CalendarDays } from "lucide-react";
 import { Button } from "./ui/button";
+import { CelebrationOverlay } from "./CelebrationOverlay";
 import { Child, Task, Character } from "@/types";
 import { supabase } from "@/lib/supabase";
 import { iconMap } from "@/lib/icons";
 
 const Home = () => {
+  const [showCelebration, setShowCelebration] = useState(false);
   const [isParentMode, setIsParentMode] = useState(false);
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeChildId, setActiveChildId] = useState<string>();
 
   const activeChild = children.find((child) => child.id === activeChildId);
+
+  const checkAndResetTasks = async () => {
+    if (!activeChildId) return;
+
+    try {
+      // Get the current time in Sydney
+      const now = new Date();
+      const sydneyOffset = getTimezoneOffset("Australia/Sydney");
+      const sydneyTime = new Date(now.getTime() + sydneyOffset);
+      const todayInSydney = format(sydneyTime, "yyyy-MM-dd");
+
+      // Get the last task update time
+      const { data: tasks } = await supabase
+        .from("tasks")
+        .select("updated_at")
+        .eq("child_id", activeChildId)
+        .eq("is_completed", true)
+        .order("updated_at", { ascending: false })
+        .limit(1);
+
+      // If there are completed tasks and they were completed on a different day
+      if (
+        tasks?.[0] &&
+        format(parseISO(tasks[0].updated_at), "yyyy-MM-dd") !== todayInSydney
+      ) {
+        // Reset all tasks for this child
+        const { error } = await supabase
+          .from("tasks")
+          .update({ is_completed: false })
+          .eq("child_id", activeChildId);
+
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error("Error checking/resetting tasks:", error);
+    }
+  };
 
   const fetchInitialData = async () => {
     try {
@@ -59,6 +100,7 @@ const Home = () => {
   };
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
+    await checkAndResetTasks(); // Check for day change before updating task
     try {
       // Update task completion status
       const { error } = await supabase
@@ -70,6 +112,16 @@ const Home = () => {
       // The streak and completed_dates will be updated automatically by the database trigger
       // We just need to fetch the latest data
       await fetchInitialData();
+
+      // Check if all tasks are completed
+      const { data: tasks } = await supabase
+        .from("tasks")
+        .select("is_completed")
+        .eq("child_id", activeChildId);
+
+      if (tasks && tasks.every((task) => task.is_completed)) {
+        setShowCelebration(true);
+      }
     } catch (error) {
       console.error("Error updating task:", error);
     }
@@ -90,7 +142,11 @@ const Home = () => {
   };
 
   useEffect(() => {
-    fetchInitialData();
+    const loadData = async () => {
+      await checkAndResetTasks();
+      await fetchInitialData();
+    };
+    loadData();
   }, []);
 
   if (loading) {
@@ -110,8 +166,16 @@ const Home = () => {
     >
       <div className="max-w-7xl mx-auto">
         <h1 className="text-4xl font-bold text-center mb-8 text-primary">
-          Atomic Kids
+          Atomic Kids ⚛️🚸
         </h1>
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-semibold text-primary">
+            {format(new Date(), "EEEE")}
+          </h2>
+          <p className="text-muted-foreground">
+            {format(new Date(), "do MMMM yyyy")}
+          </p>
+        </div>
 
         <ChildSelector
           children={children}
@@ -193,6 +257,10 @@ const Home = () => {
           )}
         </div>
       </div>
+      <CelebrationOverlay
+        show={showCelebration}
+        onComplete={() => setShowCelebration(false)}
+      />
     </motion.div>
   );
 };

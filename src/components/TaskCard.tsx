@@ -18,50 +18,35 @@ const TaskCard = ({
   isCompleted = false,
   onComplete = () => {},
 }: TaskCardProps) => {
-  const [showCelebration, setShowCelebration] = useState(false);
-
   return (
-    <>
-      <Card
-        className={`w-full h-[180px] p-6 cursor-pointer hover:shadow-lg transition-all ${isCompleted ? "bg-green-500" : "bg-white"}`}
-        onClick={() => {
-          if (!isCompleted) {
-            setShowCelebration(true);
-          }
-          onComplete(!isCompleted);
-        }}
+    <Card
+      className={`w-full h-[180px] p-6 cursor-pointer hover:shadow-lg transition-all ${isCompleted ? "bg-green-500" : "bg-white"}`}
+      onClick={() => onComplete(!isCompleted)}
+    >
+      <motion.div
+        className="flex flex-col items-center space-y-4"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
       >
-        <motion.div
-          className="flex flex-col items-center space-y-4"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+        <div className="relative">
+          {React.cloneElement(icon as React.ReactElement, {
+            className: `h-8 w-8 ${isCompleted ? "text-white" : "text-primary"}`,
+          })}
+        </div>
+
+        <h3
+          className={`text-lg font-semibold text-center line-clamp-2 ${isCompleted ? "text-white" : ""}`}
         >
-          <div className="relative">
-            {React.cloneElement(icon as React.ReactElement, {
-              className: `h-8 w-8 ${isCompleted ? "text-white" : "text-primary"}`,
-            })}
-          </div>
+          {title}
+        </h3>
 
-          <h3
-            className={`text-lg font-semibold text-center line-clamp-2 ${isCompleted ? "text-white" : ""}`}
-          >
-            {title}
-          </h3>
-
-          <div
-            className={`h-6 w-6 rounded-sm ${isCompleted ? "bg-white" : "border-2 border-primary"}`}
-          >
-            {isCompleted && (
-              <Check className="h-full w-full text-black p-0.5" />
-            )}
-          </div>
-        </motion.div>
-      </Card>
-      <CelebrationOverlay
-        show={showCelebration}
-        onComplete={() => setShowCelebration(false)}
-      />
-    </>
+        <div
+          className={`h-6 w-6 rounded-sm ${isCompleted ? "bg-white" : "border-2 border-primary"}`}
+        >
+          {isCompleted && <Check className="h-full w-full text-black p-0.5" />}
+        </div>
+      </motion.div>
+    </Card>
   );
 };
 

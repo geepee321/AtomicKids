@@ -98,25 +98,109 @@ const Home = () => {
     }
   };
 
-  const handleTaskComplete = async (taskId: string, completed: boolean) => {
-    await checkAndResetTasks(); // Check for day change before updating task
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  const [minutesUntilDeparture, setMinutesUntilDeparture] = useState<number>();
+
+  const checkTaskCompletion = async () => {
+    console.log("Checking task completion...");
+    if (!activeChildId) return;
+
     try {
-      // Update task completion status
-      const { error } = await supabase
-        .from("tasks")
-        .update({ is_completed: completed })
-        .eq("id", taskId);
-      if (error) throw error;
-
-      // The streak and completed_dates will be updated automatically by the database trigger
-      // We just need to fetch the latest data
-      await fetchInitialData();
-
-      // Check if all tasks are completed
-      const { data: tasks } = await supabase
+      // Get fresh task data to check completion status
+      const { data: freshTasks, error: tasksError } = await supabase
         .from("tasks")
         .select("is_completed")
         .eq("child_id", activeChildId);
+      if (tasksError) throw tasksError;
+
+      console.log("Fresh tasks:", freshTasks);
+      const allTasksCompleted =
+        freshTasks?.length > 0 && freshTasks.every((task) => task.is_completed);
+      console.log("All tasks completed?", allTasksCompleted);
+
+      if (allTasksCompleted) {
+        // Get current time in Sydney
+        const now = new Date();
+        const sydneyOffset = getTimezoneOffset("Australia/Sydney");
+        const sydneyTime = new Date(now.getTime() + sydneyOffset);
+        const dayOfWeek = format(sydneyTime, "EEEE");
+
+        // Get schedule for today
+        const { data: schedule, error: scheduleError } = await supabase
+          .from("weeklyschedule")
+          .select("*")
+          .eq("child_id", activeChildId)
+          .eq("day_of_week", dayOfWeek)
+          .single();
+        if (scheduleError) throw scheduleError;
+
+        console.log("Schedule for today:", schedule);
+        if (schedule) {
+          const departureTime = new Date(
+            `${format(sydneyTime, "yyyy-MM-dd")}T${schedule.time_leave_house}`,
+          );
+          const minutesLeft = Math.floor(
+            (departureTime.getTime() - sydneyTime.getTime()) / 60000,
+          );
+
+          console.log("Minutes until departure:", minutesLeft);
+          if (minutesLeft > 0) {
+            setMinutesUntilDeparture(minutesLeft);
+            setShowCompletionDialog(true);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error checking task completion:", error);
+    }
+  };
+
+  const [showTaskCompletionCelebration, setShowTaskCompletionCelebration] =
+    useState(false);
+
+  const handleTaskComplete = async (taskId: string, completed: boolean) => {
+    if (!activeChildId) return;
+
+    try {
+      // Update task completion status
+      const { error: updateError } = await supabase
+        .from("tasks")
+        .update({ is_completed: completed })
+        .eq("id", taskId);
+
+      if (updateError) throw updateError;
+
+      // Show celebration only when completing a task
+      if (completed) {
+        setShowTaskCompletionCelebration(true);
+      }
+
+      // Update local state immediately for better UX
+      setChildren((prev) =>
+        prev.map((child) => {
+          if (child.id === activeChildId) {
+            return {
+              ...child,
+              tasks: child.tasks?.map((task) =>
+                task.id === taskId
+                  ? { ...task, is_completed: completed }
+                  : task,
+              ),
+            };
+          }
+          return child;
+        }),
+      );
+
+      // Fetch fresh data in the background
+      fetchInitialData().then(() => {
+        // Check if all tasks are completed
+        const activeChild = children.find((c) => c.id === activeChildId);
+        const allCompleted = activeChild?.tasks?.every((t) => t.is_completed);
+        if (allCompleted) {
+          setShowCompletionDialog(true);
+        }
+      });
     } catch (error) {
       console.error("Error updating task:", error);
     }
@@ -164,14 +248,6 @@ const Home = () => {
           <h1 className="text-4xl font-bold text-center mb-8 text-primary">
             Atomic Kids ⚛️🚸
           </h1>
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-semibold text-primary">
-              {format(new Date(), "EEEE")}
-            </h2>
-            <p className="text-muted-foreground">
-              {format(new Date(), "do MMMM yyyy")}
-            </p>
-          </div>
         </div>
 
         <ChildSelector
@@ -251,6 +327,23 @@ const Home = () => {
           )}
         </div>
       </div>
+
+      {/* Task Completion Celebration */}
+      <CelebrationOverlay
+        show={showTaskCompletionCelebration}
+        onComplete={() => setShowTaskCompletionCelebration(false)}
+      />
+
+      {/* All Tasks Completion Dialog */}
+      <CelebrationOverlay
+        show={showCompletionDialog}
+        onComplete={() => setShowCompletionDialog(false)}
+        message={
+          minutesUntilDeparture
+            ? `You have finished all your morning tasks. You have ${minutesUntilDeparture} mins until you need to leave the house.`
+            : undefined
+        }
+      />
     </motion.div>
   );
 };
